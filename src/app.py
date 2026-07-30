@@ -2,10 +2,12 @@ import cv2
 
 from camera import Camera
 from hand_detector import HandDetector
+from landmark_processor import LandmarkProcessor
 from config import WINDOW_NAME
 
 
 def main():
+
     # Initialize camera
     camera = Camera()
     camera.start()
@@ -13,10 +15,14 @@ def main():
     # Initialize hand detector
     detector = HandDetector()
 
+    # Initialize landmark processor
+    processor = LandmarkProcessor()
+
     print("Press 'Q' to exit.")
 
     try:
         while True:
+
             # Get frame from webcam
             frame = camera.get_frame()
 
@@ -27,9 +33,15 @@ def main():
             # Detect hands
             results = detector.detect(frame)
 
+            # Extract 63 features
+            features = processor.extract_features(results)
 
-            # ► Testing print statement-remove it later
-            
+
+
+            # ► Testing - remove later
+            if features:
+                print(len(features))
+
 
 
             # Draw landmarks
@@ -43,6 +55,7 @@ def main():
                 break
 
     finally:
+        detector.close()
         camera.stop()
 
 
