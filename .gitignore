@@ -1,0 +1,23 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Output folders
+outputs/
+
+# OS files
+Thumbs.db
+.DS_Store
