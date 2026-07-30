@@ -17,7 +17,7 @@ def main():
 
     try:
         while True:
-            # Capture frame
+            # Get frame from webcam
             frame = camera.get_frame()
 
             if frame is None:
@@ -27,18 +27,22 @@ def main():
             # Detect hands
             results = detector.detect(frame)
 
+
+            # ► Testing print statement-remove it later
+            
+
+
             # Draw landmarks
             frame = detector.draw(frame, results)
 
             # Display frame
             cv2.imshow(WINDOW_NAME, frame)
 
-            # Exit when 'Q' is pressed
+            # Exit on Q
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
     finally:
-        detector.close()
         camera.stop()
 
 

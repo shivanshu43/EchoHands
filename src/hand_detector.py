@@ -3,9 +3,9 @@ import mediapipe as mp
 
 
 class HandDetector:
-    """
-    Detects hands and draws landmarks using MediaPipe.
-    """
+   
+    # Detects hands and draws landmarks using MediaPipe.
+    
 
     def __init__(
         self,
@@ -25,9 +25,9 @@ class HandDetector:
         )
 
     def detect(self, frame):
-        """
-        Detects hands in the given frame.
-        """
+        
+        # Detects hands in the given frame.
+        
 
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.hands.process(rgb_frame)
@@ -35,9 +35,9 @@ class HandDetector:
         return results
 
     def draw(self, frame, results):
-        """
-        Draws hand landmarks on the frame.
-        """
+        
+        # Draws hand landmarks on the frame.
+        
 
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
@@ -50,7 +50,7 @@ class HandDetector:
         return frame
 
     def close(self):
-        """
-        Releases MediaPipe resources.
-        """
+        
+        # Releases MediaPipe resources.
+        
         self.hands.close()
