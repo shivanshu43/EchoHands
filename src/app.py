@@ -1,9 +1,11 @@
 import cv2
 
-from camera import Camera
-from hand_detector import HandDetector
-from landmark_processor import LandmarkProcessor
-from config import WINDOW_NAME
+from src.core.camera import Camera
+from src.core.hand_detector import HandDetector
+from src.core.landmark_processor import LandmarkProcessor
+from src.core.predictor import Predictor
+
+from src.utils.config import WINDOW_NAME
 
 
 def main():
@@ -17,6 +19,7 @@ def main():
 
     # Initialize landmark processor
     processor = LandmarkProcessor()
+    predictor = Predictor()
 
     print("Press 'Q' to exit.")
 
@@ -39,13 +42,32 @@ def main():
 
 
             # ► Testing - remove later
+            prediction_text = "No Hand Detected"
+
             if features:
-                print(len(features))
+
+             predicted_class, confidence = predictor.predict(features)
+
+             prediction_text = (
+                 f"Class: {predicted_class} | "
+                  f"Confidence: {confidence * 100:.1f}%"
+              )
 
 
 
             # Draw landmarks
             frame = detector.draw(frame, results)
+
+            cv2.putText(
+                 frame,
+                 prediction_text,
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 255, 0),
+                2
+            )
+
 
             # Display frame
             cv2.imshow(WINDOW_NAME, frame)

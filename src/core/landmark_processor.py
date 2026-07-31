@@ -13,6 +13,5 @@ class LandmarkProcessor:
 
             features.append(landmark.x)
             features.append(landmark.y)
-            features.append(landmark.z)
 
         return features

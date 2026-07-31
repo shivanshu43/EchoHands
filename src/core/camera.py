@@ -1,12 +1,11 @@
 import cv2
 
+from src.utils.config import CAMERA_INDEX
 
 class Camera:
     """
     Handles webcam initialization and frame capture.
     """
-
-    from config import CAMERA_INDEX
 
     def __init__(self, camera_index=CAMERA_INDEX):
         self.camera_index = camera_index
