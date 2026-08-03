@@ -1,3 +1,6 @@
+import os
+import pickle
+
 import pandas as pd
 import tensorflow as tf
 
@@ -8,7 +11,10 @@ from tensorflow.keras import Sequential, Input
 from tensorflow.keras.layers import Dense
 
 
-CSV_PATH = "data/processed/keypoint.csv"
+CSV_PATH = "data/processed/keypoints.csv"
+
+MODEL_PATH = "models/model.keras"
+LABEL_ENCODER_PATH = "models/label_encoder.pkl"
 
 
 def main():
@@ -117,7 +123,8 @@ def main():
         X,
         y_encoded,
         test_size=0.2,
-        random_state=42
+        random_state=42,
+        stratify=y_encoded
     )
 
     print("\n" + "=" * 60)
@@ -204,6 +211,39 @@ def main():
     print("\n" + "=" * 60)
     print("Training Completed")
     print("=" * 60)
+
+    # ==========================================
+    # Evaluate Model
+    # ==========================================
+
+    loss, accuracy = model.evaluate(
+        X_test,
+        y_test,
+        verbose=0
+    )
+
+    print("\n" + "=" * 60)
+    print("Test Performance")
+    print("=" * 60)
+    print(f"Test Loss     : {loss:.4f}")
+    print(f"Test Accuracy : {accuracy * 100:.2f}%")
+
+    # ==========================================
+    # Save Model
+    # ==========================================
+
+    os.makedirs("models", exist_ok=True)
+
+    model.save(MODEL_PATH)
+
+    with open(LABEL_ENCODER_PATH, "wb") as file:
+        pickle.dump(label_encoder, file)
+
+    print("\n" + "=" * 60)
+    print("Model Saved Successfully")
+    print("=" * 60)
+    print(f"Model         : {MODEL_PATH}")
+    print(f"Label Encoder : {LABEL_ENCODER_PATH}")
 
 
 if __name__ == "__main__":

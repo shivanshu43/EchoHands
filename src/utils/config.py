@@ -10,4 +10,4 @@ FRAME_WIDTH = 1280
 FRAME_HEIGHT = 720
 
 # Model Configuration
-MODEL_PATH = "models/model.h5"
+MODEL_PATH = "models/model.keras"

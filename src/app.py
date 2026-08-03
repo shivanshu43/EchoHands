@@ -44,7 +44,7 @@ def main():
             # ► Testing - remove later
             prediction_text = "No Hand Detected"
 
-            if features:
+            if features is not None:
 
              predicted_class, confidence = predictor.predict(features)
 

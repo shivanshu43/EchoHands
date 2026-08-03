@@ -16,7 +16,7 @@ class Predictor:
 
         features = np.array(features, dtype=np.float32)
 
-        features = features.reshape(1, 42)
+        features = features.reshape(1, -1)
 
         prediction = self.model.predict(features, verbose=0)
 
