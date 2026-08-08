@@ -1,27 +1,76 @@
+import joblib
 import numpy as np
-import tensorflow as tf
 
-from src.utils.config import MODEL_PATH
+from src.utils.config import (
+    RANDOM_FOREST_MODEL_PATH,
+    LABEL_ENCODER_PATH,
+)
+
 
 class Predictor:
 
     def __init__(self):
 
-        self.model = tf.keras.models.load_model(MODEL_PATH)
+        self.model = self.load_model()
+        self.label_encoder = self.load_label_encoder()
+
+    def load_model(self):
+
+        try:
+
+            return joblib.load(RANDOM_FOREST_MODEL_PATH)
+
+        except Exception as error:
+
+            raise RuntimeError(
+                f"Failed to load model from "
+                f"'{RANDOM_FOREST_MODEL_PATH}': {error}"
+            )
+
+    def load_label_encoder(self):
+
+        try:
+
+            return joblib.load(LABEL_ENCODER_PATH)
+
+        except Exception as error:
+
+            raise RuntimeError(
+                f"Failed to load label encoder from "
+                f"'{LABEL_ENCODER_PATH}': {error}"
+            )
 
     def predict(self, features):
 
         if features is None:
-            return None
+            return None, 0.0
 
-        features = np.array(features, dtype=np.float32)
+        try:
 
-        features = features.reshape(1, -1)
+            features = np.asarray(
+                features,
+                dtype=np.float32
+            )
 
-        prediction = self.model.predict(features, verbose=0)
+            if features.ndim != 1:
+                raise ValueError("Features must be a 1D array.")
 
-        predicted_class = np.argmax(prediction)
+            features = features.reshape(1, -1)
 
-        confidence = prediction[0][predicted_class]
+            predicted_class = self.model.predict(features)[0]
 
-        return predicted_class, confidence
+            probabilities = self.model.predict_proba(features)[0]
+
+            confidence = probabilities[predicted_class]
+
+            predicted_label = self.label_encoder.inverse_transform(
+                [predicted_class]
+            )[0]
+
+            return predicted_label, confidence
+
+        except Exception as error:
+
+            raise RuntimeError(
+                f"Prediction failed: {error}"
+            )

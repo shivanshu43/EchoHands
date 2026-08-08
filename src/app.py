@@ -36,7 +36,7 @@ def main():
             # Detect hands
             results = detector.detect(frame)
 
-            # Extract 63 features
+            # Extract normalized landmark features
             features = processor.extract_features(results)
 
 
