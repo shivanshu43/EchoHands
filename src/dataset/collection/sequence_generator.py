@@ -11,7 +11,7 @@ from src.core.landmark_processor import LandmarkProcessor
 
 SEQUENCE_DIR = "data/processed/dynamic_sequences"
 
-SEQUENCES_PER_HAND = 5
+SEQUENCES_PER_HAND = 50
 
 MIN_FRAMES = 10
 
