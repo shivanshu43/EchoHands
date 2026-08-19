@@ -16,7 +16,9 @@ CSV_PATH = "data/processed/keypoints.csv"
 
 TARGET_NEW_SAMPLES = 100
 
-SAMPLES_PER_VARIATION = 20
+SAMPLES_PER_HAND = 50
+
+SAMPLES_PER_VARIATION = 10
 
 VARIATIONS = [
     "Canonical Pose",
@@ -48,6 +50,27 @@ def get_existing_samples(csv_path, label):
     return count
 
 
+def get_hand_label(results):
+
+    """
+    Returns LEFT or RIGHT according to MediaPipe's
+    detected handedness.
+    """
+
+    if (
+        results is None
+        or not results.multi_hand_landmarks
+        or not results.multi_handedness
+    ):
+        return None
+
+    classification = (
+        results.multi_handedness[0].classification[0]
+    )
+
+    return classification.label.upper()
+
+
 def collect_label(label):
 
     existing = get_existing_samples(
@@ -56,30 +79,44 @@ def collect_label(label):
     )
 
     print()
-    print("=" * 55)
+    print("=" * 60)
     print(f"Targeted Augmentation: {label}")
-    print("=" * 55)
+    print("=" * 60)
     print(f"Existing samples : {existing}")
-    print(f"New samples      : {TARGET_NEW_SAMPLES}")
-    print(f"Final total      : {existing + TARGET_NEW_SAMPLES}")
-    print("=" * 55)
+    print("New samples      : 100")
+    print("  LEFT           : 50")
+    print("  RIGHT          : 50")
+    print(f"Final total      : {existing + 100}")
+    print("=" * 60)
     print()
 
     collector = DatasetCollector()
     detector = HandDetector()
     processor = LandmarkProcessor()
     quality_checker = QualityChecker()
-    duplicate_detector = DuplicateDetector()
+
+    # Separate duplicate detectors for each hand
+    # so the first sample of one hand does not
+    # interfere with the other hand.
+    duplicate_detectors = {
+        "LEFT": DuplicateDetector(),
+        "RIGHT": DuplicateDetector()
+    }
+
+    current_hand = "LEFT"
+
+    hand_samples = {
+        "LEFT": 0,
+        "RIGHT": 0
+    }
 
     variation_index = 0
     variation_count = 0
 
-    new_samples = 0
-
     paused = True
 
     pause_message = (
-        f"Prepare {label} - "
+        f"Show LEFT hand - "
         f"{VARIATIONS[variation_index]}"
     )
 
@@ -105,6 +142,7 @@ def collect_label(label):
             frame = collector.get_frame()
 
             if frame is None:
+
                 print("\nFailed to capture frame.")
                 break
 
@@ -112,23 +150,35 @@ def collect_label(label):
 
             features = None
 
+            detected_hand = get_hand_label(results)
+
             # ======================================
             # Quality Check
             # ======================================
 
             if quality_checker.is_valid(results):
 
-                features = processor.extract_features(
-                    results
-                )
-
                 # ==================================
-                # Duplicate Check
+                # Hand Check
                 # ==================================
 
-                if duplicate_detector.is_duplicate(
-                    features
-                ):
+                if detected_hand == current_hand:
+
+                    features = processor.extract_features(
+                        results
+                    )
+
+                    # ==============================
+                    # Duplicate Check
+                    # ==============================
+
+                    if duplicate_detectors[
+                        current_hand
+                    ].is_duplicate(features):
+
+                        features = None
+
+                else:
 
                     features = None
 
@@ -151,14 +201,21 @@ def collect_label(label):
 
                 csv_file.flush()
 
-                new_samples += 1
+                hand_samples[current_hand] += 1
+
                 variation_count += 1
 
                 last_capture_time = current_time
 
+                total_new = (
+                    hand_samples["LEFT"]
+                    + hand_samples["RIGHT"]
+                )
+
                 print(
                     f"\r{label}: "
-                    f"{new_samples}/{TARGET_NEW_SAMPLES}",
+                    f"LEFT {hand_samples['LEFT']}/50 | "
+                    f"RIGHT {hand_samples['RIGHT']}/50",
                     end=""
                 )
 
@@ -172,12 +229,7 @@ def collect_label(label):
                 ):
 
                     variation_count = 0
-
                     variation_index += 1
-
-                    # ------------------------------
-                    # All variations completed
-                    # ------------------------------
 
                     if (
                         variation_index
@@ -191,9 +243,52 @@ def collect_label(label):
                     paused = True
 
                     pause_message = (
-                        f"Next: {label} - "
+                        f"Next: {current_hand} - "
                         f"{VARIATIONS[variation_index]}"
                     )
+
+                # ==================================
+                # LEFT → RIGHT
+                # ==================================
+
+                if (
+                    current_hand == "LEFT"
+                    and hand_samples["LEFT"]
+                    >= SAMPLES_PER_HAND
+                ):
+
+                    current_hand = "RIGHT"
+
+                    variation_index = 0
+                    variation_count = 0
+
+                    paused = True
+
+                    pause_message = (
+                        f"Switch to RIGHT hand - "
+                        f"{VARIATIONS[variation_index]}"
+                    )
+
+                # ==================================
+                # Finished
+                # ==================================
+
+                if (
+                    hand_samples["LEFT"]
+                    >= SAMPLES_PER_HAND
+                    and
+                    hand_samples["RIGHT"]
+                    >= SAMPLES_PER_HAND
+                ):
+
+                    print()
+                    print()
+                    print(
+                        f"Finished targeted "
+                        f"augmentation for {label}."
+                    )
+
+                    break
 
             # ======================================
             # Draw landmarks
@@ -220,8 +315,8 @@ def collect_label(label):
 
             cv2.putText(
                 frame,
-                f"New Samples: "
-                f"{new_samples}/{TARGET_NEW_SAMPLES}",
+                f"LEFT: "
+                f"{hand_samples['LEFT']}/50",
                 (20, 80),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.75,
@@ -231,21 +326,54 @@ def collect_label(label):
 
             cv2.putText(
                 frame,
+                f"RIGHT: "
+                f"{hand_samples['RIGHT']}/50",
+                (20, 120),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.75,
+                (0, 255, 0),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                f"Required: {current_hand}",
+                (20, 160),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.75,
+                (255, 180, 0),
+                2
+            )
+
+            cv2.putText(
+                frame,
                 f"Variation: "
                 f"{VARIATIONS[variation_index]}",
-                (20, 120),
+                (20, 200),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.65,
                 (255, 255, 0),
                 2
             )
 
+            if detected_hand is not None:
+
+                cv2.putText(
+                    frame,
+                    f"Detected: {detected_hand}",
+                    (20, 240),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.65,
+                    (255, 255, 255),
+                    2
+                )
+
             if paused:
 
                 cv2.putText(
                     frame,
                     pause_message,
-                    (20, 180),
+                    (20, 290),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.65,
                     (0, 255, 255),
@@ -255,7 +383,7 @@ def collect_label(label):
                 cv2.putText(
                     frame,
                     "Press SPACE to start",
-                    (20, 220),
+                    (20, 330),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.65,
                     (0, 0, 255),
@@ -274,11 +402,10 @@ def collect_label(label):
             # ======================================
 
             if key == ord("q"):
-
                 break
 
             # ======================================
-            # Resume capture
+            # Resume
             # ======================================
 
             if paused and key == ord(" "):
@@ -286,21 +413,6 @@ def collect_label(label):
                 paused = False
 
                 pause_message = ""
-
-            # ======================================
-            # Finished
-            # ======================================
-
-            if new_samples >= TARGET_NEW_SAMPLES:
-
-                print()
-                print()
-                print(
-                    f"Finished targeted "
-                    f"augmentation for {label}."
-                )
-
-                break
 
     finally:
 
@@ -338,5 +450,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 
-CSV_PATH = "data/processed/keypoints.csv"
+CSV_PATH = "data/processed/keypoints_geometric.csv"
 
 
 def load_dataset():

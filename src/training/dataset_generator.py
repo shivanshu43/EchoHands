@@ -12,7 +12,7 @@ from src.dataset.collection.variation_manager import VariationManager
 from src.core.hand_detector import HandDetector
 from src.core.landmark_processor import LandmarkProcessor
 
-CSV_PATH = "data/processed/keypoints.csv"
+CSV_PATH = "data/processed/keypoints_geometric.csv"
 
 
 def get_existing_samples(csv_path, label):
