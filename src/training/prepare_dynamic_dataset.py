@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from src.core.landmark_processor import LandmarkProcessor
 
 
 BASE_DIR = "data/processed/dynamic_sequences"
@@ -51,6 +52,8 @@ def load_sequences():
     sequences = []
     labels = []
 
+    processor = LandmarkProcessor()
+
     print("\n========== Loading Dynamic Dataset ==========\n")
 
     for label in LABELS:
@@ -94,11 +97,39 @@ def load_sequences():
                         f"{sequence.shape}"
                     )
 
-                if sequence.shape[1] != 42:
-                    raise ValueError(
-                        f"Invalid feature count in {file}: "
-                        f"{sequence.shape[1]}"
+                    if sequence.shape[1] != 42:
+
+                        raise ValueError(
+                            f"Invalid feature count in {file}: "
+                            f"{sequence.shape[1]}"
+                        )
+
+                # ==========================================
+                # Convert 42 features → 70 features
+                # ==========================================
+
+                geometric_sequence = []
+
+                for frame in sequence:
+
+                    features_70 = (
+                        processor.add_geometric_features(
+                            frame
+                        )
                     )
+
+                    geometric_sequence.append(
+                        features_70
+                    )
+
+                sequence = np.asarray(
+                    geometric_sequence,
+                    dtype=np.float32
+                )
+
+                # ==========================================
+                # Resample to 40 frames
+                # ==========================================
 
                 sequence = resample_sequence(
                     sequence,

@@ -264,3 +264,170 @@ class LandmarkProcessor:
             )
 
         return features
+    
+    def add_geometric_features(self, original_features):
+
+            original_features = np.asarray(
+                original_features,
+                dtype=np.float32
+            )
+
+            if original_features.shape[0] != 42:    
+                raise ValueError(
+                    f"Expected 42 original features, "
+                    f"got {original_features.shape[0]}"
+                )
+
+            # Reconstruct 21 normalized landmarks
+            landmarks = []
+
+            for i in range(21):
+
+                landmarks.append([
+                    float(original_features[i * 2]),
+                    float(original_features[i * 2 + 1])
+                ])
+
+            # --------------------------------------------------------
+            # Scale
+            # --------------------------------------------------------
+
+            wrist = landmarks[0]
+
+            max_distance = 0.0
+
+            for landmark in landmarks:
+
+                distance = self._distance(
+                    wrist,
+                    landmark
+                )
+
+                if distance > max_distance:
+                    max_distance = distance
+
+            if max_distance == 0:
+
+                max_distance = 1.0
+
+            geometric_features = []
+
+            # --------------------------------------------------------
+            # 1. Thumb tip → fingertip distances
+            # --------------------------------------------------------
+
+            thumb_tip = landmarks[4]
+
+            fingertip_indices = [
+                8,
+                12,
+                16,
+                20
+            ]
+
+            for index in fingertip_indices:
+
+                geometric_features.append(
+                    self._distance(
+                        thumb_tip,
+                        landmarks[index]
+                    ) / max_distance
+                )
+
+            # --------------------------------------------------------
+            # 2. Fingertip → fingertip distances
+            # --------------------------------------------------------
+
+            fingertip_pairs = [
+                (8, 12),
+                (12, 16),
+                (16, 20),
+                (8, 16),
+                (8, 20),
+                (12, 20)
+            ]
+
+            for a, b in fingertip_pairs:
+
+                geometric_features.append(
+                    self._distance(
+                        landmarks[a],
+                        landmarks[b]
+                    ) / max_distance
+                )
+
+            # --------------------------------------------------------
+            # 3. Thumb joint → finger base distances
+            # --------------------------------------------------------
+
+            thumb_points = [
+                2,
+                3
+            ]
+
+            finger_points = [
+                6,
+                10,
+                14,
+                18
+            ]
+
+            for thumb_index in thumb_points:
+
+                for finger_index in finger_points:
+
+                    geometric_features.append(
+                        self._distance(
+                            landmarks[thumb_index],
+                            landmarks[finger_index]
+                        ) / max_distance
+                    )
+
+            # --------------------------------------------------------
+            # 4. Finger joint angles
+            # --------------------------------------------------------
+
+            angle_triplets = [
+
+                (5, 6, 7),
+                (6, 7, 8),
+
+                (9, 10, 11),
+                (10, 11, 12),
+
+                (13, 14, 15),
+                (14, 15, 16),
+
+                (17, 18, 19),
+                (18, 19, 20),
+
+                (1, 2, 3),
+                (2, 3, 4)
+            ]
+
+            for a, b, c in angle_triplets:
+
+                geometric_features.append(
+                    self._angle(
+                        landmarks[a],
+                        landmarks[b],
+                        landmarks[c]
+                    )
+                )
+
+            if len(geometric_features) != 28:
+
+                raise ValueError(
+                    f"Expected 28 geometric features, "
+                    f"got {len(geometric_features)}"
+                )
+
+            return np.concatenate([
+                original_features,
+                np.asarray(
+                    geometric_features,
+                    dtype=np.float32
+                )
+            ])
+    
+    

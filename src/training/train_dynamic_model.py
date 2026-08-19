@@ -50,7 +50,7 @@ def build_model():
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(
-            shape=(40, 42)
+            shape=(40, 70)
         ),
 
         tf.keras.layers.LSTM(

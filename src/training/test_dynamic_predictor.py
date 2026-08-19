@@ -3,31 +3,59 @@ import numpy as np
 from src.core.dynamic_predictor import DynamicPredictor
 
 
+DATASET_PATH = (
+    "data/processed/"
+    "dynamic/"
+    "dynamic_dataset.npz"
+)
+
+
 def main():
 
     predictor = DynamicPredictor()
 
-    print("\n========== Dynamic Predictor Test ==========\n")
-
-    # ------------------------------------------
-    # Load one saved J sequence
-    # ------------------------------------------
-
-    j_path = (
-        "data/processed/"
-        "dynamic_sequences/"
-        "J/LEFT/J_LEFT_001.npz"
+    print(
+        "\n========== Dynamic Predictor Test ==========\n"
     )
 
-    j_data = np.load(
-        j_path,
+    # ==========================================
+    # Load processed 70-feature dataset
+    # ==========================================
+
+    data = np.load(
+        DATASET_PATH,
         allow_pickle=True
     )
 
-    j_sequence = j_data["sequence"]
+    X = data["X"]
+    y = data["y"]
 
     print(
-        "J sequence shape:",
+        "Dataset shape:",
+        X.shape
+    )
+
+    print(
+        "Labels shape:",
+        y.shape
+    )
+
+    # ==========================================
+    # Find one J sequence
+    # ==========================================
+
+    j_indices = np.where(y == "J")[0]
+
+    if len(j_indices) == 0:
+
+        raise ValueError(
+            "No J sequences found."
+        )
+
+    j_sequence = X[j_indices[0]]
+
+    print(
+        "\nJ sequence shape:",
         j_sequence.shape
     )
 
@@ -47,22 +75,19 @@ def main():
         f"{confidence * 100:.2f}%"
     )
 
-    # ------------------------------------------
-    # Load one saved Z sequence
-    # ------------------------------------------
+    # ==========================================
+    # Find one Z sequence
+    # ==========================================
 
-    z_path = (
-        "data/processed/"
-        "dynamic_sequences/"
-        "Z/LEFT/Z_LEFT_001.npz"
-    )
+    z_indices = np.where(y == "Z")[0]
 
-    z_data = np.load(
-        z_path,
-        allow_pickle=True
-    )
+    if len(z_indices) == 0:
 
-    z_sequence = z_data["sequence"]
+        raise ValueError(
+            "No Z sequences found."
+        )
+
+    z_sequence = X[z_indices[0]]
 
     print(
         "\nZ sequence shape:",
@@ -91,4 +116,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()

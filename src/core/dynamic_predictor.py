@@ -5,7 +5,7 @@ import tensorflow as tf
 class DynamicPredictor:
 
     TARGET_FRAMES = 40
-    FEATURES_PER_FRAME = 42
+    FEATURES_PER_FRAME = 70
 
     def __init__(
         self,

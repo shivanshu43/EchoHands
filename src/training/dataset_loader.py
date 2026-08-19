@@ -9,10 +9,10 @@ CSV_PATH = "data/processed/keypoints_geometric.csv"
 
 def load_dataset():
 
-    # Load CSV
     dataframe = pd.read_csv(
         CSV_PATH,
-        header=None,
+        header=None
+        dtype={0: str}
     )
 
     # First column = labels
