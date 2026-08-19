@@ -4,79 +4,220 @@ from src.core.camera import Camera
 from src.core.hand_detector import HandDetector
 from src.core.landmark_processor import LandmarkProcessor
 from src.core.predictor import Predictor
+from src.core.dynamic_predictor import DynamicPredictor
+from src.core.recognition_controller import RecognitionController
 
 from src.utils.config import WINDOW_NAME
 
 
 def main():
 
-    # Initialize camera
+    # ==========================================
+    # Initialize components
+    # ==========================================
+
     camera = Camera()
+    detector = HandDetector()
+    processor = LandmarkProcessor()
+
+    static_predictor = Predictor()
+    dynamic_predictor = DynamicPredictor()
+
+    controller = RecognitionController(
+        static_predictor,
+        dynamic_predictor
+    )
+
+    last_prediction = "None"
+    last_confidence = 0.0
+
+    # ==========================================
+    # Start camera
+    # ==========================================
+
     camera.start()
 
-    # Initialize hand detector
-    detector = HandDetector()
-
-    # Initialize landmark processor
-    processor = LandmarkProcessor()
-    predictor = Predictor()
-
-    print("Press 'Q' to exit.")
+    print("\n========== Sign Language Recognition ==========\n")
+    print("Static gestures : A-Y + 0-9")
+    print("Dynamic gestures: J / Z")
+    print("Press 'Q' to exit.\n")
 
     try:
+
         while True:
 
-            # Get frame from webcam
+            # ==========================================
+            # Get frame
+            # ==========================================
+
             frame = camera.get_frame()
 
             if frame is None:
+
                 print("Failed to capture frame.")
                 break
 
-            # Detect hands
-            results = detector.detect(frame)
+            # ==========================================
+            # Detect hand
+            # ==========================================
 
-            # Extract normalized landmark features
-            features = processor.extract_features(results)
+            results = detector.detect(
+                frame
+            )
 
+            # ==========================================
+            # Extract 70 features
+            # ==========================================
 
+            features = processor.extract_features(
+                results
+            )
 
-            # ► Testing - remove later
-            prediction_text = "No Hand Detected"
+            # ==========================================
+            # Recognition Controller
+            # ==========================================
 
-            if features is not None:
+            result = controller.update(
+                features
+            )
 
-             predicted_class, confidence = predictor.predict(features)
+            prediction = result["prediction"]
+            confidence = result["confidence"]
+            mode = result["mode"]
+            sequence_complete = result["sequence_complete"]
 
-             prediction_text = (
-                 f"Class: {predicted_class} | "
-                  f"Confidence: {confidence * 100:.1f}%"
-              )
+            # ==========================================
+            # Update displayed prediction
+            # ==========================================
 
+            if features is None:
 
+                last_prediction = "No Hand Detected"
+                last_confidence = 0.0
 
+            elif prediction is not None:
+
+                last_prediction = prediction
+                last_confidence = confidence
+
+            # ==========================================
             # Draw landmarks
-            frame = detector.draw(frame, results)
+            # ==========================================
+
+            frame = detector.draw(
+                frame,
+                results
+            )
+
+            # ==========================================
+            # Mode
+            # ==========================================
 
             cv2.putText(
-                 frame,
-                 prediction_text,
+                frame,
+                f"Mode: {mode}",
                 (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 0),
+                2
+            )
+
+            # ==========================================
+            # Prediction
+            # ==========================================
+
+            cv2.putText(
+                frame,
+                f"Prediction: {last_prediction}",
+                (20, 80),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.8,
                 (0, 255, 0),
                 2
             )
 
+            # ==========================================
+            # Confidence
+            # ==========================================
 
-            # Display frame
-            cv2.imshow(WINDOW_NAME, frame)
+            cv2.putText(
+                frame,
+                f"Confidence: "
+                f"{last_confidence * 100:.1f}%",
+                (20, 120),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 255),
+                2
+            )
 
-            # Exit on Q
+            # ==========================================
+            # Sequence length
+            # ==========================================
+
+            cv2.putText(
+                frame,
+                f"Sequence frames: "
+                f"{controller.get_sequence_length()}",
+                (20, 160),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 180, 0),
+                2
+            )
+
+            # ==========================================
+            # NONE state
+            # ==========================================
+
+            if mode == controller.NONE:
+
+                cv2.putText(
+                    frame,
+                    "NONE - Waiting for next gesture",
+                    (20, 200),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 0, 255),
+                    2
+                )
+
+            # ==========================================
+            # Dynamic gesture completed
+            # ==========================================
+
+            if sequence_complete:
+
+                cv2.putText(
+                    frame,
+                    "Dynamic gesture detected!",
+                    (20, 240),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (0, 255, 0),
+                    2
+                )
+
+            # ==========================================
+            # Display
+            # ==========================================
+
+            cv2.imshow(
+                WINDOW_NAME,
+                frame
+            )
+
+            # ==========================================
+            # Quit
+            # ==========================================
+
             if cv2.waitKey(1) & 0xFF == ord("q"):
+
                 break
 
     finally:
+
         detector.close()
         camera.stop()
 
